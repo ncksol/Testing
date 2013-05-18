@@ -1,71 +1,85 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.IsolatedStorage;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Ink;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Shapes;
+using System.Windows.Media.Imaging;
 using HtmlAgilityPack;
+using Microsoft.Phone;
 
 namespace MetroLepraLib
 {
     public class Lepra
     {
-        HttpClient client = new HttpClient();
-
-        private string _captchaUrl;
+        private Stream _captchaImageDataStream;
         private string _loginCode;
-        
-        public async Task<String> Foo()
+
+        public async Task<string> TryLogin(string captcha)
         {
-            var data = await client.GetAsync("http://leprosorium.ru");
-            var dataString = data.Content.ReadAsStringAsync().Result;
+            var client = new HttpClient();
+            var content = new FormUrlEncodedContent(new[]
+                                                        {
+                                                            new KeyValuePair<string, string>("user", "dobroe-zlo"),
+                                                            new KeyValuePair<string, string>("pass", "d22msept85y"),
+                                                            new KeyValuePair<string, string>("captcha", captcha),
+                                                            new KeyValuePair<string, string>("logincode", _loginCode),
+                                                            new KeyValuePair<string, string>("x", "1"),
+                                                            new KeyValuePair<string, string>("y", "6"),
+                                                        });
 
-            ProcessCaptcha(dataString);
+            var response = await client.PostAsync("http://leprosorium.ru/login/", content);
 
-            return _captchaUrl;
+            var headers = response.Headers.ToList();
+            var htmlData = await response.Content.ReadAsStringAsync();
+            return SaveHTMLFile(htmlData);
         }
 
-        private void ProcessCaptcha(string data)
+        public async Task<WriteableBitmap> LoadLoginPage()
         {
+            var client = new HttpClient();
+            var response = await client.GetAsync("http://leprosorium.ru");
+            var headers = response.Headers.ToList();
+
             var htmlDocument = new HtmlDocument();
-            htmlDocument.LoadHtml(data);
+            htmlDocument.Load(await response.Content.ReadAsStreamAsync());
 
-            var captchaImage = htmlDocument.DocumentNode.Descendants().Where(x => x.GetAttributeValue("alt", String.Empty) == "captcha").ToList();
-            if (captchaImage.Count > 0)
-            {
-                _captchaUrl = captchaImage.First().GetAttributeValue("src", String.Empty);
-            }
+            var loginCodeElement = htmlDocument.DocumentNode.Descendants().FirstOrDefault(x => x.GetAttributeValue("name", String.Empty) == "logincode");
+            _loginCode = loginCodeElement.GetAttributeValue("value", String.Empty);
 
-            var loginCodeInput = htmlDocument.DocumentNode.Descendants().Where(x => x.GetAttributeValue("name", String.Empty) == "logincode").ToList();
-            if (loginCodeInput.Count > 0)
-            {
-                _loginCode = loginCodeInput.First().GetAttributeValue("value", String.Empty);
-            }
+            var captchaElement = htmlDocument.DocumentNode.Descendants().FirstOrDefault(x => x.GetAttributeValue("alt", String.Empty) == "captcha");
 
+            _captchaImageDataStream = await client.GetStreamAsync("http://leprosorium.ru" + captchaElement.GetAttributeValue("src", String.Empty));
+
+            return GetCaptcha();
         }
 
-        public async void TryLogin(string userName, string password, string captcha)
+        public WriteableBitmap GetCaptcha()
         {
-            HttpContent content = new FormUrlEncodedContent(new[]
-                                                                {
-                                                                    new KeyValuePair<string,string>("user", userName),
-                                                                    new KeyValuePair<string,string>("password", password),
-                                                                    new KeyValuePair<string,string>("capture", captcha),
-                                                                    new KeyValuePair<string,string>("logincode", _loginCode),
-                                                                });
-            
+            var captcha = PictureDecoder.DecodeJpeg(_captchaImageDataStream);
+            return captcha;
+        }
 
+        private string SaveHTMLFile(string html)
+        {
+            var fileName = "TextFile1.htm";
+            var isolatedStorageFile = IsolatedStorageFile.GetUserStoreForApplication();
+            if (isolatedStorageFile.FileExists(fileName))
+            {
+                isolatedStorageFile.DeleteFile(fileName);
+            }
 
-            var response = client.PostAsync("http://leprosorium.ru/login/", content);
-            
+            var data = Encoding.UTF8.GetBytes(html);
+            using (var writer = new BinaryWriter(isolatedStorageFile.CreateFile(fileName)))
+            {
+                writer.Write(data);
+                writer.Close();
+            }
+
+            return fileName;
         }
     }
 }

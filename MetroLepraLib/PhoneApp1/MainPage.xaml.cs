@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Navigation;
 using MetroLepraLib;
 using Microsoft.Phone.Controls;
-using Microsoft.Phone.Shell;
-using PhoneApp1.Resources;
 
 namespace PhoneApp1
 {
@@ -30,14 +24,6 @@ namespace PhoneApp1
             base.OnNavigatedTo(e);
 
             _lepra = new Lepra();
-            var captchaUrl = await _lepra.Foo();
-
-            webBrowser.Source = new Uri("http://leprosorium.ru" + captchaUrl);
-        }
-
-        private void btnLogin_Click(object sender, RoutedEventArgs e)
-        {
-            _lepra.TryLogin(txtUsername.Text, txtPassword.Text, txtCaptcha.Text);
         }
 
         // Sample code for building a localized ApplicationBar
@@ -55,5 +41,16 @@ namespace PhoneApp1
         //    ApplicationBarMenuItem appBarMenuItem = new ApplicationBarMenuItem(AppResources.AppBarMenuItemText);
         //    ApplicationBar.MenuItems.Add(appBarMenuItem);
         //}
+        private async void BtnLoad_OnClick(object sender, RoutedEventArgs e)
+        {
+            imgCaptcha.Source = await _lepra.LoadLoginPage();
+        }
+
+        private async void BtnLogin_OnClick(object sender, RoutedEventArgs e)
+        {
+            var htmlResponse = await _lepra.TryLogin(txtCaptcha.Text);
+
+            webBrowser.Navigate(new Uri(htmlResponse, UriKind.Relative));
+        }
     }
 }
