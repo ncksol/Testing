@@ -18,7 +18,7 @@ namespace MetroLepraLib
         private Stream _captchaImageDataStream;
         private string _loginCode;
 
-        public async Task<string> TryLogin(string captcha)
+        public async Task<List<KeyValuePair<string, IEnumerable<string>>>> TryLogin(string captcha)
         {
             var client = new HttpClient();
             var content = new FormUrlEncodedContent(new[]
@@ -31,18 +31,20 @@ namespace MetroLepraLib
                                                             new KeyValuePair<string, string>("y", "6"),
                                                         });
 
-            var response = await client.PostAsync("http://leprosorium.ru/login/", content);
+            var message = new HttpRequestMessage(HttpMethod.Post, "http://leprosorium.ru/login/");
+            message.Content = content;
+            message.Headers.Add("Pragma", new []{"no-cache"});
+            message.Headers.Add("Cache-Control", new[] { "no-cache" });
 
-            var headers = response.Headers.ToList();
-            var htmlData = await response.Content.ReadAsStringAsync();
-            return SaveHTMLFile(htmlData);
+            var response = await client.SendAsync(message);
+
+            return response.Headers.ToList();
         }
 
-        public async Task<WriteableBitmap> LoadLoginPage()
+        public async Task LoadLoginPage()
         {
             var client = new HttpClient();
             var response = await client.GetAsync("http://leprosorium.ru");
-            var headers = response.Headers.ToList();
 
             var htmlDocument = new HtmlDocument();
             htmlDocument.Load(await response.Content.ReadAsStreamAsync());
@@ -53,8 +55,6 @@ namespace MetroLepraLib
             var captchaElement = htmlDocument.DocumentNode.Descendants().FirstOrDefault(x => x.GetAttributeValue("alt", String.Empty) == "captcha");
 
             _captchaImageDataStream = await client.GetStreamAsync("http://leprosorium.ru" + captchaElement.GetAttributeValue("src", String.Empty));
-
-            return GetCaptcha();
         }
 
         public WriteableBitmap GetCaptcha()
@@ -63,23 +63,9 @@ namespace MetroLepraLib
             return captcha;
         }
 
-        private string SaveHTMLFile(string html)
+        public Stream GetCaptchaStream()
         {
-            var fileName = "TextFile1.htm";
-            var isolatedStorageFile = IsolatedStorageFile.GetUserStoreForApplication();
-            if (isolatedStorageFile.FileExists(fileName))
-            {
-                isolatedStorageFile.DeleteFile(fileName);
-            }
-
-            var data = Encoding.UTF8.GetBytes(html);
-            using (var writer = new BinaryWriter(isolatedStorageFile.CreateFile(fileName)))
-            {
-                writer.Write(data);
-                writer.Close();
-            }
-
-            return fileName;
+            return _captchaImageDataStream;
         }
     }
 }

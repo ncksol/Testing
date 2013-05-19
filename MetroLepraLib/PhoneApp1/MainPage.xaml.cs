@@ -43,14 +43,13 @@ namespace PhoneApp1
         //}
         private async void BtnLoad_OnClick(object sender, RoutedEventArgs e)
         {
-            imgCaptcha.Source = await _lepra.LoadLoginPage();
+            await _lepra.LoadLoginPage();
+            imgCaptcha.Source = _lepra.GetCaptcha();
         }
 
         private async void BtnLogin_OnClick(object sender, RoutedEventArgs e)
         {
-            var htmlResponse = await _lepra.TryLogin(txtCaptcha.Text);
-
-            webBrowser.Navigate(new Uri(htmlResponse, UriKind.Relative));
+            var headers = await _lepra.TryLogin(txtCaptcha.Text);
         }
     }
 }
