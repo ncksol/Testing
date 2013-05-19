@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.IsolatedStorage;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Media.Imaging;
 using HtmlAgilityPack;
 using Microsoft.Phone;
@@ -18,33 +15,30 @@ namespace MetroLepraLib
         private Stream _captchaImageDataStream;
         private string _loginCode;
 
-        public async Task<List<KeyValuePair<string, IEnumerable<string>>>> TryLogin(string captcha)
+        public async Task<List<KeyValuePair<string, IEnumerable<string>>>> TryLogin(string captcha, string login = "dobroe-zlo", string password="d22msept85y")
         {
             var client = new HttpClient();
             var content = new FormUrlEncodedContent(new[]
                                                         {
-                                                            new KeyValuePair<string, string>("user", "dobroe-zlo"),
-                                                            new KeyValuePair<string, string>("pass", "d22msept85y"),
+                                                            new KeyValuePair<string, string>("user", login),
+                                                            new KeyValuePair<string, string>("pass", password),
                                                             new KeyValuePair<string, string>("captcha", captcha),
                                                             new KeyValuePair<string, string>("logincode", _loginCode),
-                                                            new KeyValuePair<string, string>("x", "1"),
-                                                            new KeyValuePair<string, string>("y", "6"),
                                                         });
 
             var message = new HttpRequestMessage(HttpMethod.Post, "http://leprosorium.ru/login/");
             message.Content = content;
-            message.Headers.Add("Pragma", new []{"no-cache"});
-            message.Headers.Add("Cache-Control", new[] { "no-cache" });
+            message.Headers.Add("Cookie", "lepro.save=; lepro.sid=; lepro.uid=; lepro.rnbum=0; lepro.iamarobot=1; lepro.gstqcsaahbv20=; __utma=120651029.123855715.1368996584.1368996584.1368996584.1; __utmb=120651029.1.10.1368996584; __utmc=120651029; __utmz=120651029.1368996584.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); _ym_visorc=b");
 
             var response = await client.SendAsync(message);
-
+            var data = await response.Content.ReadAsStringAsync();
             return response.Headers.ToList();
         }
 
         public async Task LoadLoginPage()
         {
             var client = new HttpClient();
-            var response = await client.GetAsync("http://leprosorium.ru");
+            var response = await client.GetAsync("http://leprosorium.ru/");
 
             var htmlDocument = new HtmlDocument();
             htmlDocument.Load(await response.Content.ReadAsStreamAsync());

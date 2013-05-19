@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Windows;
 using System.Windows.Navigation;
 using MetroLepraLib;
@@ -49,7 +52,15 @@ namespace PhoneApp1
 
         private async void BtnLogin_OnClick(object sender, RoutedEventArgs e)
         {
+            //var headers = await _lepra.TryLogin(txtCaptcha.Text, txtLogin.Text, txtPassword.Text);
             var headers = await _lepra.TryLogin(txtCaptcha.Text);
+            var sb = new StringBuilder();
+            foreach (var header in headers)
+            {
+                sb.AppendLine(String.Format("{0}:{1}", header.Key, new List<String>(header.Value).First()));
+            }
+
+            txtHeaders.Text = sb.ToString();
         }
     }
 }
