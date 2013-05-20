@@ -44,6 +44,7 @@ namespace PhoneApp1
         //    ApplicationBarMenuItem appBarMenuItem = new ApplicationBarMenuItem(AppResources.AppBarMenuItemText);
         //    ApplicationBar.MenuItems.Add(appBarMenuItem);
         //}
+
         private async void BtnLoad_OnClick(object sender, RoutedEventArgs e)
         {
             await _lepra.LoadLoginPage();
@@ -53,14 +54,18 @@ namespace PhoneApp1
         private async void BtnLogin_OnClick(object sender, RoutedEventArgs e)
         {
             //var headers = await _lepra.TryLogin(txtCaptcha.Text, txtLogin.Text, txtPassword.Text);
-            var headers = await _lepra.TryLogin(txtCaptcha.Text);
+            var headers = await _lepra.TryLogin(txtCaptcha.Text, "dobroe-zlo", txtPassword.Text);
             var sb = new StringBuilder();
-            foreach (var header in headers)
+            var setCookieHeader = headers.FirstOrDefault(x => x.Key == "Set-Cookie");
+
+            foreach (var header in setCookieHeader.Value)
             {
-                sb.AppendLine(String.Format("{0}:{1}", header.Key, new List<String>(header.Value).First()));
+                sb.AppendLine(header);
             }
 
             txtHeaders.Text = sb.ToString();
+
+            txtError.Text = _lepra.Error;
         }
     }
 }

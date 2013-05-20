@@ -56,6 +56,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition/>
           </Grid.RowDefinitions>
           <Grid.ColumnDefinitions>
@@ -71,7 +72,8 @@
           <TextBox Grid.Row="3" x:Name="txtCaptcha" Grid.Column="1" />
           <Image Grid.Row="4" x:Name="imgCaptcha" Grid.ColumnSpan="2" />
           <Button Grid.Row="5" x:Name="btnLogin" Click="BtnLogin_OnClick" Content="Login" Grid.ColumnSpan="2"/>
-          <TextBlock x:Name="txtHeaders" TextWrapping="Wrap" Grid.Row="6" Grid.ColumnSpan="2"/>
+          <TextBlock Grid.Row="6" Grid.ColumnSpan="2" x:Name="txtError" Foreground="Red" />
+          <TextBlock x:Name="txtHeaders" TextWrapping="Wrap" Grid.Row="7" Grid.ColumnSpan="2"/>
         </Grid>
       </ScrollViewer>
 
