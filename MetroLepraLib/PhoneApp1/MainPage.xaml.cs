@@ -28,12 +28,21 @@ namespace PhoneApp1
             base.OnNavigatedTo(e);
 
             _lepra = new Lepra();
+            _lepra.LoginFailed += LepraOnLoginFailed;
+        }
+
+        private void LepraOnLoginFailed(object sender, string error)
+        {
+            if (Dispatcher.CheckAccess())
+                txtError.Text = error;
+            else
+                Dispatcher.BeginInvoke(() => txtError.Text = error);
         }
 
         // Sample code for building a localized ApplicationBar
         //private void BuildLocalizedApplicationBar()
         //{
-        //    // Set the page's ApplicationBar to a new instance of ApplicationBar.
+        //    // Set the page'error ApplicationBar to a new instance of ApplicationBar.
         //    ApplicationBar = new ApplicationBar();
 
         //    // Create a new button and set the text value to the localized string from AppResources.
@@ -56,22 +65,12 @@ namespace PhoneApp1
 
         private async void BtnLogin_OnClick(object sender, RoutedEventArgs e)
         {
-            /*
-            //var headers = await _lepra.TryLogin(txtCaptcha.Text, txtLogin.Text, txtPassword.Text);
-            var headers = await _lepra.TryLogin(txtCaptcha.Text, "dobroe-zlo", txtPassword.Text);
-            var sb = new StringBuilder();
-            var setCookieHeader = headers.FirstOrDefault(x => x.Key == "Set-Cookie");
+            _lepra.Login(txtCaptcha.Text, "dobroe-zlo", "d22msept85y");
+        }
 
-            foreach (var header in setCookieHeader.Value)
-            {
-                sb.AppendLine(header);
-            }
-
-            txtHeaders.Text = sb.ToString();
-
-            txtError.Text = _lepra.Error;*/
-
-            _lepra.Foo(txtCaptcha.Text, "dobroe-zlo", "d22msept85y");
+        private void BtnLoadData_OnClick(object sender, RoutedEventArgs e)
+        {
+            _lepra.GetLatestPosts(false);
         }
     }
 }
