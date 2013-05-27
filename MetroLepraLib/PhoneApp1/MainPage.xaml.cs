@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Navigation;
 using MetroLepraLib;
+using Microsoft.Phone;
 using Microsoft.Phone.Controls;
 
 namespace PhoneApp1
@@ -48,11 +49,14 @@ namespace PhoneApp1
         private async void BtnLoad_OnClick(object sender, RoutedEventArgs e)
         {
             await _lepra.LoadLoginPage();
-            imgCaptcha.Source = _lepra.GetCaptcha();
+
+            var bitmap = PictureDecoder.DecodeJpeg(_lepra.GetCaptchaStream());
+            imgCaptcha.Source = bitmap;
         }
 
         private async void BtnLogin_OnClick(object sender, RoutedEventArgs e)
         {
+            /*
             //var headers = await _lepra.TryLogin(txtCaptcha.Text, txtLogin.Text, txtPassword.Text);
             var headers = await _lepra.TryLogin(txtCaptcha.Text, "dobroe-zlo", txtPassword.Text);
             var sb = new StringBuilder();
@@ -65,7 +69,9 @@ namespace PhoneApp1
 
             txtHeaders.Text = sb.ToString();
 
-            txtError.Text = _lepra.Error;
+            txtError.Text = _lepra.Error;*/
+
+            _lepra.Foo(txtCaptcha.Text, "dobroe-zlo", "d22msept85y");
         }
     }
 }

@@ -1,0 +1,32 @@
+﻿<Window x:Class="WpfApplication1.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="350" Width="525">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition/>
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto" />
+      <ColumnDefinition />
+    </Grid.ColumnDefinitions>
+    <Button x:Name="btnLoad" Click="BtnLoad_OnClick" Content="Load" Grid.ColumnSpan="2"/>
+    <TextBlock Text="Login:" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" />
+    <TextBox x:Name="txtLogin" Grid.Row="1" Grid.Column="1"></TextBox>
+    <TextBlock Grid.Row="2" TextWrapping="Wrap" Text="Password:" VerticalAlignment="Center"/>
+    <TextBox x:Name="txtPassword" Grid.Column="1" Grid.Row="2" TextWrapping="Wrap"/>
+    <TextBlock Grid.Row="3" TextWrapping="Wrap" Text="Captcha:" VerticalAlignment="Center"/>
+    <TextBox Grid.Row="3" x:Name="txtCaptcha" Grid.Column="1" />
+    <Image Grid.Row="4" x:Name="imgCaptcha" Grid.ColumnSpan="2" />
+    <Button Grid.Row="5" x:Name="btnLogin" Click="BtnLogin_OnClick" Content="Login" Grid.ColumnSpan="2"/>
+    <TextBlock Grid.Row="6" Grid.ColumnSpan="2" x:Name="txtError" Foreground="Red" />
+    <TextBlock x:Name="txtHeaders" TextWrapping="Wrap" Grid.Row="7" Grid.ColumnSpan="2"/>
+  </Grid>
+</Window>
