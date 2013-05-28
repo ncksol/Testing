@@ -17,8 +17,9 @@
       <Border Margin="0,0,0,10" d:DesignWidth="435.92" d:DesignHeight="318.507" BorderThickness="0,0,0,1" BorderBrush="Red" >
         <Grid d:DesignWidth="435.92" d:DesignHeight="318.507">
           <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
           </Grid.RowDefinitions>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -27,6 +28,8 @@
           <TextBlock TextWrapping="Wrap" Text="{Binding Text}" Grid.Row="0" Grid.ColumnSpan="2"/>
           <TextBlock TextWrapping="Wrap" Text="{Binding Wrote}" Grid.Row="1" Grid.Column="0"/>
           <TextBlock TextWrapping="Wrap" Text="{Binding When}" Grid.Row="1" Grid.Column="1"/>
+          <Button Content="+" Grid.Row="2" Tag="{Binding}" Click="UpVote_Click"/>
+          <Button Content="-" Grid.Column="1" Grid.Row="2" Tag="{Binding}" Click="DownVote_Click"/>
         </Grid>
       </Border>
     </DataTemplate>

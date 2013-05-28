@@ -65,7 +65,7 @@ namespace PhoneApp1
 
         private async void BtnLogin_OnClick(object sender, RoutedEventArgs e)
         {
-            _lepra.Login(txtCaptcha.Text, "dobroe-zlo", "d22msept85y");
+            _lepra.Login(txtCaptcha.Text, "dobroe-zlo", "");
         }
 
         private void BtnLoadData_OnClick(object sender, RoutedEventArgs e)

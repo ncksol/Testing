@@ -140,7 +140,7 @@ namespace MetroLepraLib
 
             ProcessMain(content);
 
-            GetLatestPosts(true);
+            Logout();
         }
 
         private string GetResponseError(string htmlData)
@@ -238,6 +238,160 @@ namespace MetroLepraLib
             _myNewPosts = leproPanelJObject["myunreadposts"].Value<int>();
         }
 
+        public async void GetComments(LepraPost post)
+        {
+            var url = String.Empty;
+
+            if (post.Type == "inbox")
+                url = "http://leprosorium.ru/my/inbox/" + post.Id;
+            else
+            {
+                var server = "http://leprosorium.ru";
+                if (!String.IsNullOrEmpty(post.Url))
+                    server = post.Url;
+
+                url = String.Format("http://{0}/comments/{1}", server, post.Id);
+            }
+
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+
+            var htmlData = await client.GetStringAsync(url);
+
+            htmlData = Regex.Replace(htmlData, "\n+", "");
+            htmlData = Regex.Replace(htmlData, "\r+", "");
+            htmlData = Regex.Replace(htmlData, "\t+", "");
+
+
+        }
+
+        public async void VotePost(LepraPost post, string value)
+        {
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var url = "http://";
+            if (!String.IsNullOrEmpty(post.Url))
+                url += post.Url;
+            else
+                url += "leprosorium.ru";
+
+            url += "/rate/";
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+            var message = new HttpRequestMessage(HttpMethod.Post, new Uri(url));
+            message.Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
+                                                            {
+                                                                new KeyValuePair<string, string>("type", "1"),
+                                                                new KeyValuePair<string, string>("id", "p"+post.Id),
+                                                                new KeyValuePair<string, string>("wtf", _postVoteWTF),
+                                                                new KeyValuePair<string, string>("value", value),
+                                                            });
+            var response = await client.SendAsync(message);
+        }
+
+        public async void GetUserProfile(string username)
+        {
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+
+            var htmlData = await client.GetStringAsync(String.Format("http://leprosorium.ru/users/{0}", username));
+
+            htmlData = Regex.Replace(htmlData, "\n+", "");
+            htmlData = Regex.Replace(htmlData, "\r+", "");
+            htmlData = Regex.Replace(htmlData, "\t+", "");
+
+            var userPic = Regex.Match(htmlData, "<table class=\"userpic\"><tbody><tr><td><img src=\"(.+?)\".+?/>").Groups[1].Value;
+
+            var regData = Regex.Match(htmlData, "<div class=\"userregisterdate\">(.+?)</div>").Groups[1].Value;
+            regData = Regex.Replace(regData, "\\.", "");
+            var regDataArray = regData.Split(new[] {", "}, StringSplitOptions.RemoveEmptyEntries);
+            var number = regDataArray[0];
+            var date = regDataArray[1];
+
+            var name = Regex.Match(htmlData, "<div class=\"userbasicinfo\"><h3>(.+?)</h3>").Groups[1].Value;
+            var location = Regex.Match(htmlData, "<div class=\"userego\">(.+?)</div>").Groups[1].Value;
+            var karma = Regex.Match(htmlData, "<span class=\"rating\" id=\"js-user_karma\".+?><em>(.+?)</em>").Groups[1].Value;
+
+            var statWroteMatch = Regex.Match(htmlData, "<div class=\"userstat userrating\">(.+?)</div>");
+            var statRateMatch = Regex.Match(htmlData, "<div class=\"userstat uservoterate\">Вес голоса&nbsp;&#8212; (.+?)<br.*?>Голосов в день&nbsp;&#8212; (.+?)</div>");
+
+            var userStat = Regex.Replace(statWroteMatch.Groups[1].Value, "(<([^>]+)>)", " ");
+            var voteStat = "Вес голоса&nbsp;&#8212; " + statRateMatch.Groups[1].Value + ",<br>Голосов в день&nbsp;&#8212; " + statRateMatch.Groups[2].Value;
+
+            var story = Regex.Match(htmlData, "<div class=\"userstory\">(.+?)</div>").Groups[1].Value;
+
+            var contactsMatch = Regex.Match(htmlData, "<div class=\"usercontacts\">(.+?)</div>");
+            var contacts = Regex.Split(contactsMatch.Groups[1].Value, "<br.*?>");
+
+            var user = new LepraUser();
+            user.Username = username;
+            user.Userpic = userPic;
+            user.Number = number;
+            user.RegistrationDate = date;
+            user.FullName = name;
+            user.Location = location;
+            user.Karma = karma;
+            user.UserStat = userStat;
+            user.VoteStat = voteStat;
+            user.Contacts = contacts;
+            user.Description = story;
+        }
+
+        public async void Logout()
+        {
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+            var message = new HttpRequestMessage(HttpMethod.Post, new Uri("http://leprosorium.ru/logout/"));
+            message.Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
+                                                            {
+                                                                new KeyValuePair<string, string>("wtf", _logoutWTF)
+                                                            });
+            var response = await client.SendAsync(message);
+
+            var content = await response.Content.ReadAsStringAsync();
+        }
+
+        public async Task<List<LepraPost>> GetInbox()
+        {
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+
+            var responseString = await client.GetStringAsync("http://leprosorium.ru/my/inbox/");
+
+            var favourites = ProcessHtmlPosts(responseString);
+
+            return favourites;
+        }
+
+        public async Task<List<LepraPost>> GetFavourites(bool forseRefresh)
+        {
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+
+            var responseString = await client.GetStringAsync("http://leprosorium.ru/my/favourites/");
+
+            var favourites = ProcessHtmlPosts(responseString);
+
+            return favourites;
+        }
+
         public async Task<List<LepraPost>> GetMyPosts(bool forseRefresh)
         {
             if (_cookieContainer == null)
@@ -247,6 +401,8 @@ namespace MetroLepraLib
             var client = new HttpClient(handler);
 
             var responseString = await client.GetStringAsync("http://leprosorium.ru/my/");
+
+            ProcessMain(responseString);
 
             var myPosts = ProcessHtmlPosts(responseString);
 
@@ -304,7 +460,7 @@ namespace MetroLepraLib
             htmlData = Regex.Replace(htmlData, "\r+", "");
             htmlData = Regex.Replace(htmlData, "\t+", "");
 
-            var postReg ="<div class=\"post.+?id=\"(.+?)\".+?class=\"dt\">(.+?)</div>.+?<a href=\".*?/users/.+?\".*?>(.+?)</a>,(.+?)<span>.+?<a href=\".*?/(comments|inbox)/.+?\">(.+?)</span>.+?.+?(<div class=\"vote\".+?><em>(.+?)</em></span>|</div>)(<a href=\"#\".+?class=\"plus(.*?)\">.+?<a href=\"#\".+?class=\"minus(.*?)\">|</div>)";
+            var postReg ="<div class=\"post.+?id=\"(.+?)\".+?class=\"dt\">(.+?)</div>.+?<div class=\"p\">(.+?)<a href=\".*?/users/.+?\".*?>(.+?)</a>,(.+?)<span>.+?<a href=\".*?/(comments|inbox)/.+?\">(.+?)</span>.+?.+?(<div class=\"vote\".+?><em>(.+?)</em></span>|</div>)(<a href=\"#\".+?class=\"plus(.*?)\">.+?<a href=\"#\".+?class=\"minus(.*?)\">|</div>)";
             var matches = Regex.Matches(htmlData, postReg);
             foreach (Match match in matches)
             {
@@ -328,24 +484,28 @@ namespace MetroLepraLib
                     text += "...";
                 }
 
-                var user = match.Groups[3].Value;
+                var userSub = match.Groups[4].Value.Split(new []{"</a> в "}, StringSplitOptions.RemoveEmptyEntries);
+                var sub = userSub.Length > 1 ? Regex.Replace(userSub[1], "(<([^>]+)>)", "") : "";
+
+                var user = userSub[0];
                 
                 var vote = 0;
-                if (match.Groups[9].Success && match.Groups[9].Value.Length > 0)
+                if (match.Groups[10].Success && match.Groups[10].Value.Length > 0)
                     vote = 1;
-                else if (match.Groups[10].Success && match.Groups[10].Value.Length > 0)
+                else if (match.Groups[11].Success && match.Groups[11].Value.Length > 0)
                     vote = -1;
 
                 var post = new LepraPost();
                 post.Id = match.Groups[1].Value.Replace("p", "");
                 post.Body = postBody;
-                post.Rating = match.Groups[8].Value;
+                post.Rating = match.Groups[9].Value;
                 post.User = user;
-                post.Type = match.Groups[5].Value;
-                post.Url = String.Format("/my/{0}/{1}", post.Type, post.Id);
-                post.When = match.Groups[4].Value;
+                post.Type = match.Groups[6].Value;
+                post.Url = sub;
+                post.When = match.Groups[5].Value;
+                post.Wrote = String.Format("{0}{1}", match.Groups[3].Value, user);
 
-                var comments = Regex.Replace(match.Groups[6].Value, "(<([^>]+)>)", "");
+                var comments = Regex.Replace(match.Groups[7].Value, "(<([^>]+)>)", "");
                 comments = Regex.Replace(comments, "коммента.+?(\\s|$)", "");
                 comments = Regex.Replace(comments, " нов.+", "");
                 post.Comments = comments;

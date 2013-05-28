@@ -24,9 +24,24 @@ namespace PhoneApp1
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            var posts = await _lepra.GetMyPosts(true);
-
+            var posts = await _lepra.GetMyPosts(false);
             postsList.ItemsSource = posts;
+        }
+
+        private void DownVote_Click(object sender, RoutedEventArgs e)
+        {
+            var button = (Button) sender;
+            var post = (LepraPost) button.Tag;
+
+            _lepra.VotePost(post, "-1");
+        }
+
+        private void UpVote_Click(object sender, RoutedEventArgs e)
+        {
+            var button = (Button)sender;
+            var post = (LepraPost)button.Tag;
+
+            _lepra.VotePost(post, "1");
         }
     }
 }
