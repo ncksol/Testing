@@ -4,6 +4,7 @@ using System.Resources;
 using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Navigation;
+using MetroLepraLib;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using PhoneApp1.Resources;
@@ -17,6 +18,8 @@ namespace PhoneApp1
         /// </summary>
         /// <returns>The root frame of the Phone Application.</returns>
         public static PhoneApplicationFrame RootFrame { get; private set; }
+
+        public static LepraPost CurrentPost { get; set; }
 
         /// <summary>
         /// Constructor for the Application object.

@@ -238,8 +238,9 @@ namespace MetroLepraLib
             _myNewPosts = leproPanelJObject["myunreadposts"].Value<int>();
         }
 
-        public async void GetComments(LepraPost post)
+        public async Task<List<LepraComment>> GetComments(LepraPost post)
         {
+            var comments = new List<LepraComment>();
             var url = String.Empty;
 
             if (post.Type == "inbox")
@@ -250,22 +251,73 @@ namespace MetroLepraLib
                 if (!String.IsNullOrEmpty(post.Url))
                     server = post.Url;
 
-                url = String.Format("http://{0}/comments/{1}", server, post.Id);
+                url = String.Format("{0}/comments/{1}", server, post.Id);
             }
-
+            
             if (_cookieContainer == null)
                 FillCookies();
 
             var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
             var client = new HttpClient(handler);
-
             var htmlData = await client.GetStringAsync(url);
-
+            
             htmlData = Regex.Replace(htmlData, "\n+", "");
             htmlData = Regex.Replace(htmlData, "\r+", "");
             htmlData = Regex.Replace(htmlData, "\t+", "");
 
+            var voteResMatch = Regex.Match(htmlData, "wtf_vote = '(.+?)'");
 
+            var commentsReg = "<div id=\"(.+?)\" class=\"post tree(.+?)\"><div class=\"dt\">(.+?)</div>.+?<a href=\".*?/users/.+?\">(.+?)</a>,(.+?)<span>.+?(<div class=\"vote\".+?><em>(.+?)</em></span>|</div>)(<a href=\"#\".+?class=\"plus(.*?)\">.+?<a href=\"#\".+?class=\"minus(.*?)\">|</div>)";
+
+            htmlData = htmlData.Substring(htmlData.IndexOf("id=\"js-commentsHolder\""));
+            var commentsMatches = Regex.Matches(htmlData, commentsReg);
+
+            foreach (Match match in commentsMatches)
+            {
+                var text = match.Groups[3].Value;
+
+                var imgReg = "img src=\"(.+?)\"";
+                var res = Regex.Matches(text, imgReg);
+
+                foreach (Match imgMatch in res)
+                {
+                    text = text.Replace(imgMatch.Groups[1].Value, "http://src.sencha.io/" + _screenBiggestMeasure + "/" + imgMatch.Groups[1].Value);
+                }
+
+                var vote = 0;
+                if (!String.IsNullOrEmpty(match.Groups[9].Value))
+                    vote = 1;
+                else if (!String.IsNullOrEmpty(match.Groups[10].Value))
+                    vote = -1;
+
+                var indent = 0;
+                var resImgMatch = Regex.Match(match.Groups[2].Value, "indent_(.+?) ");
+
+                if (resImgMatch.Success)
+                    indent = Convert.ToInt32(resImgMatch.Groups[1].Value);
+                if (indent > 15)
+                    indent = 15;
+
+                text = Regex.Replace(text, "<p.*?>", "");
+                text = Regex.Replace(text, "</p>", "");
+                text = Regex.Replace(text, "<nonimg", "<img");
+
+                var isNew = match.Groups[2].Value.IndexOf("new") != -1;
+
+                var comment = new LepraComment();
+                comment.Id = match.Groups[1].Value;
+                comment.IsNew = isNew;
+                comment.Indent = indent;
+                comment.Text = text;
+                comment.Rating = match.Groups[7].Value;
+                comment.User = match.Groups[4].Value;
+                comment.When = match.Groups[5].Value;
+                comment.Vote = vote;
+
+                comments.Add(comment);
+            }
+
+            return comments;
         }
 
         public async void VotePost(LepraPost post, string value)
@@ -435,9 +487,28 @@ namespace MetroLepraLib
             var message = new HttpRequestMessage(HttpMethod.Post, new Uri("http://leprosorium.ru/idxctl/"));
             message.Content = new StringContent("from=" + _postCount);
             var response = await client.SendAsync(message);
+            var cookies = response.Headers.ToList().FirstOrDefault(x => x.Key == "Set-Cookie");
+            foreach (var cookie in cookies.Value)
+            {
+                var sId = Regex.Match(cookie, "lepro.sid=(.+?);.+?").Groups[1].Value;
+                if (!String.IsNullOrEmpty(sId))
+                {
+                    _sId = sId;
+                    continue;
+                }
 
+                var uId = Regex.Match(cookie, ".+?lepro.uid=(.+?);.+?").Groups[1].Value;
+                if (!String.IsNullOrEmpty(uId))
+                {
+                    _uId = uId;
+                    continue;
+                }
+            }
+            
             var responseContent = await response.Content.ReadAsStringAsync();
             _lastPostFetchTime = DateTime.Now;
+
+            ProcessMain(responseContent);
 
             var latestPostsJObject = JObject.Parse(responseContent);
             return latestPostsJObject;

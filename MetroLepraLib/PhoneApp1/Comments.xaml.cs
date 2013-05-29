@@ -11,27 +11,29 @@ using Microsoft.Phone.Shell;
 
 namespace PhoneApp1
 {
-    public partial class Posts : PhoneApplicationPage
+    public partial class Comments : PhoneApplicationPage
     {
         private Lepra _lepra;
 
-        public Posts()
+        public Comments()
         {
             InitializeComponent();
 
             _lepra = new Lepra();
         }
 
-        private async void Button_Click(object sender, RoutedEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
-            var posts = await _lepra.GetLatestPosts(false);
-            postsList.ItemsSource = posts;
+            base.OnNavigatedTo(e);
+
+            var comments = await _lepra.GetComments(App.CurrentPost);
+            postsList.ItemsSource = comments;
         }
 
         private void DownVote_Click(object sender, RoutedEventArgs e)
         {
-            var button = (Button) sender;
-            var post = (LepraPost) button.Tag;
+            var button = (Button)sender;
+            var post = (LepraPost)button.Tag;
 
             _lepra.VotePost(post, "-1");
         }
@@ -42,14 +44,6 @@ namespace PhoneApp1
             var post = (LepraPost)button.Tag;
 
             _lepra.VotePost(post, "1");
-        }
-
-        private void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-            var button = (Button)sender;
-            App.CurrentPost = (LepraPost) button.Tag;
-
-            NavigationService.Navigate(new Uri("/Comments.xaml", UriKind.Relative));
         }
     }
 }
