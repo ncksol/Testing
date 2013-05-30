@@ -37,6 +37,7 @@ namespace MetroLepraLib
         private int _voteWeight;
         private int _postCount;
         private int _screenBiggestMeasure = 1280;
+        private string _newPostWtf;
 
         public event EventHandler LoginSuccessful;
         public event EventHandler<String> LoginFailed;
@@ -238,6 +239,85 @@ namespace MetroLepraLib
             _myNewPosts = leproPanelJObject["myunreadposts"].Value<int>();
         }
 
+        public async void AddPost(string subUrl)
+        {
+            var url = "http://leprosorium.ru/asylum/";
+            if (!String.IsNullOrEmpty(subUrl))
+                url = subUrl;
+
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+
+            var htmlData = await client.GetStringAsync("http://leprosorium.ru/asylum/");
+            htmlData = htmlData.Substring(htmlData.IndexOf("action=\"/asylum/\""));
+
+            _newPostWtf = Regex.Match(htmlData, "name=\"wtf\" value=\"(.+?)\"").Groups[1].Value;
+
+            var message = new HttpRequestMessage(HttpMethod.Post, new Uri(url));
+            message.Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
+                                                            {
+                                                                new KeyValuePair<string, string>("wtf", _newPostWtf),
+                                                                new KeyValuePair<string, string>("comment", "Тест"),
+                                                            });
+
+            var response = await client.SendAsync(message);
+            var responseContent = await response.Content.ReadAsStringAsync();
+        }
+
+        public async Task<LepraComment> AddComment(LepraPost post, LepraComment inReplyTo, string comment)
+        {
+            var url = "http://leprosorium.ru/commctl/";
+            /*
+            if(!String.IsNullOrEmpty(post.Url))
+                url += post.Url;
+            else
+                url += "leprosorium.ru";
+
+            url += "/commctl/";*/
+
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+            var message = new HttpRequestMessage(HttpMethod.Post, new Uri(url));
+            message.Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
+                                                            {
+                                                                new KeyValuePair<string, string>("pid", post.Id),
+                                                                new KeyValuePair<string, string>("wtf", post.CommentWtf),
+                                                                new KeyValuePair<string, string>("comment", comment),
+                                                                new KeyValuePair<string, string>("replyto", inReplyTo != null ? inReplyTo.Id : ""),
+                                                            });
+
+            var response = await client.SendAsync(message);
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            var newCommentJObject = JObject.Parse(responseContent);
+
+            if(newCommentJObject["status"].Value<String>() == "ERR")
+                return null;
+
+            var newComment = new LepraComment();
+            newComment.Id = newCommentJObject["new_comment"]["comment_id"].Value<String>();
+            newComment.IsNew = true;
+            newComment.Text = comment;
+            newComment.Rating = "0";
+            newComment.User = newCommentJObject["new_comment"]["user_login"].Value<String>();
+            var date = newCommentJObject["new_comment"]["date"].Value<String>();
+            var time = newCommentJObject["new_comment"]["time"].Value<String>();
+            newComment.When = date + " в " + time;
+            newComment.Vote = 0;
+            if(inReplyTo == null)
+                newComment.Indent = 0;
+            else
+                newComment.Indent = inReplyTo.Indent == 15 ? 15 : inReplyTo.Indent + 1;
+
+            return newComment;
+        }
+
         public async Task<List<LepraComment>> GetComments(LepraPost post)
         {
             var comments = new List<LepraComment>();
@@ -247,11 +327,11 @@ namespace MetroLepraLib
                 url = "http://leprosorium.ru/my/inbox/" + post.Id;
             else
             {
-                var server = "http://leprosorium.ru";
-                if (!String.IsNullOrEmpty(post.Url))
-                    server = post.Url;
+                var server = "leprosorium.ru";
+                /*if (!String.IsNullOrEmpty(post.Url))
+                    server = post.Url;*/
 
-                url = String.Format("{0}/comments/{1}", server, post.Id);
+                url = String.Format("http://{0}/comments/{1}", server, post.Id);
             }
             
             if (_cookieContainer == null)
@@ -260,12 +340,16 @@ namespace MetroLepraLib
             var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
             var client = new HttpClient(handler);
             var htmlData = await client.GetStringAsync(url);
+
+            ProcessMain(htmlData);
             
             htmlData = Regex.Replace(htmlData, "\n+", "");
             htmlData = Regex.Replace(htmlData, "\r+", "");
             htmlData = Regex.Replace(htmlData, "\t+", "");
 
             var voteResMatch = Regex.Match(htmlData, "wtf_vote = '(.+?)'");
+            //post.Vote = voteResMatch.Success ? Convert.ToInt32(voteResMatch.Groups[1].Value) : (int?)null;
+            post.CommentWtf = Regex.Match(htmlData, "commentsHandler.wtf = '(.+?)'").Groups[1].Value;
 
             var commentsReg = "<div id=\"(.+?)\" class=\"post tree(.+?)\"><div class=\"dt\">(.+?)</div>.+?<a href=\".*?/users/.+?\">(.+?)</a>,(.+?)<span>.+?(<div class=\"vote\".+?><em>(.+?)</em></span>|</div>)(<a href=\"#\".+?class=\"plus(.*?)\">.+?<a href=\"#\".+?class=\"minus(.*?)\">|</div>)";
 
@@ -320,6 +404,33 @@ namespace MetroLepraLib
             return comments;
         }
 
+        public async void VoteComment(LepraPost post, LepraComment comment, string value)
+        {
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var url = "http://";
+            if (!String.IsNullOrEmpty(post.Url))
+                url += post.Url;
+            else
+                url += "leprosorium.ru";
+
+            url += "/rate/";
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+            var message = new HttpRequestMessage(HttpMethod.Post, new Uri(url));
+            message.Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
+                                                            {
+                                                                new KeyValuePair<string, string>("type", "0"),
+                                                                new KeyValuePair<string, string>("post_id", post.Id),
+                                                                new KeyValuePair<string, string>("wtf", _postVoteWTF),
+                                                                new KeyValuePair<string, string>("value", value),
+                                                                new KeyValuePair<string, string>("id", comment.Id),
+                                                            });
+            var response = await client.SendAsync(message);
+        }
+
         public async void VotePost(LepraPost post, string value)
         {
             if (_cookieContainer == null)
@@ -339,7 +450,7 @@ namespace MetroLepraLib
             message.Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
                                                             {
                                                                 new KeyValuePair<string, string>("type", "1"),
-                                                                new KeyValuePair<string, string>("id", "p"+post.Id),
+                                                                new KeyValuePair<string, string>("id", post.Id),
                                                                 new KeyValuePair<string, string>("wtf", _postVoteWTF),
                                                                 new KeyValuePair<string, string>("value", value),
                                                             });
@@ -470,8 +581,17 @@ namespace MetroLepraLib
 
             _postCount = 0;
 
-            var latestPostsJObject = await RequestPosts();
+            if (_cookieContainer == null)
+                FillCookies();
 
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+
+            var htmlData = await client.GetStringAsync("http://leprosorium.ru/");
+            ProcessMain(htmlData);
+
+            var latestPostsJObject = await RequestPosts();
+            
             ProcessJsonPosts(latestPostsJObject["posts"], _latestPosts);
 
             return _latestPosts;
@@ -507,8 +627,6 @@ namespace MetroLepraLib
             
             var responseContent = await response.Content.ReadAsStringAsync();
             _lastPostFetchTime = DateTime.Now;
-
-            ProcessMain(responseContent);
 
             var latestPostsJObject = JObject.Parse(responseContent);
             return latestPostsJObject;

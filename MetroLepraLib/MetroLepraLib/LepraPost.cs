@@ -18,7 +18,8 @@ namespace MetroLepraLib
         public String Comments { get; set; }
         public String Wrote { get; set; }
         public String When { get; set; }
-        public int Vote { get; set; }
+        public int? Vote { get; set; }
         public string Type { get; set; }
+        public string CommentWtf { get; set; }
     }
 }

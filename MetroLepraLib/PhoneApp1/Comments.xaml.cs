@@ -33,17 +33,31 @@ namespace PhoneApp1
         private void DownVote_Click(object sender, RoutedEventArgs e)
         {
             var button = (Button)sender;
-            var post = (LepraPost)button.Tag;
+            var comment = (LepraComment)button.Tag;
 
-            _lepra.VotePost(post, "-1");
+            _lepra.VoteComment(App.CurrentPost, comment, "-1");
         }
 
         private void UpVote_Click(object sender, RoutedEventArgs e)
         {
             var button = (Button)sender;
-            var post = (LepraPost)button.Tag;
+            var comment = (LepraComment)button.Tag;
 
-            _lepra.VotePost(post, "1");
+            _lepra.VoteComment(App.CurrentPost, comment, "1");
+        }
+
+        private void Reply_Click(object sender, RoutedEventArgs e)
+        {
+            var button = (Button)sender;
+            var comment = (LepraComment)button.Tag;
+            App.ReplyToComment = comment;
+
+            NavigationService.Navigate(new Uri("/Post.xaml", UriKind.Relative));
+        }
+
+        private void ReplyPost_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/Post.xaml", UriKind.Relative));
         }
     }
 }

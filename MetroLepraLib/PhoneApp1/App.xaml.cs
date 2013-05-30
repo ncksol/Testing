@@ -21,6 +21,8 @@ namespace PhoneApp1
 
         public static LepraPost CurrentPost { get; set; }
 
+        public static LepraComment ReplyToComment { get; set; }
+
         /// <summary>
         /// Constructor for the Application object.
         /// </summary>
