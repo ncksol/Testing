@@ -24,9 +24,8 @@ namespace PhoneApp1
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            /*var posts = await _lepra.GetInbox();
-            postsList.ItemsSource = posts;*/
-            _lepra.AddPost("http://void.leprosorium.ru/asylum/");
+            var posts = await _lepra.GetUnderground();
+            postsList.ItemsSource = posts;            
         }
 
         private void DownVote_Click(object sender, RoutedEventArgs e)

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MetroLepraLib
 {
-    class SubLepra
+    public class SubLepra
     {
         private String _name;
         private String _creator;

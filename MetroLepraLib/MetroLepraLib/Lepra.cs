@@ -239,6 +239,58 @@ namespace MetroLepraLib
             _myNewPosts = leproPanelJObject["myunreadposts"].Value<int>();
         }
 
+        public async Task<List<SubLepra>> GetUnderground(int? page = null)
+        {
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+
+            var htmlData = await client.GetStringAsync("http://leprosorium.ru/underground/subscribers/" + page.GetValueOrDefault(1));
+
+            htmlData = Regex.Replace(htmlData, "\n+", "");
+            htmlData = Regex.Replace(htmlData, "\r+", "");
+            htmlData = Regex.Replace(htmlData, "\t+", "");
+
+            var subRegex = "<strong class=\"jj_logo\"><a href=\"(.+?)\"><img src=\"(.+?)\" alt=\"(.*?)\" />.+?<a href=\".*?/users/.+?\">(.+?)</a>";
+
+            var underground = new List<SubLepra>();
+            var matches = Regex.Matches(htmlData, subRegex);
+            foreach (Match match in matches)
+            {
+                var subLepra = new SubLepra();
+                subLepra.Name = match.Groups[3].Success ? match.Groups[3].Value : match.Groups[1].Value;
+                subLepra.Creator = match.Groups[4].Value;
+                subLepra.Link = match.Groups[1].Value;
+                subLepra.Logo = match.Groups[2].Value;
+
+                underground.Add(subLepra);
+            }
+
+            return underground;
+        }
+
+        public async void GetCurrentPresident()
+        {
+            if (_cookieContainer == null)
+                FillCookies();
+
+            var handler = new HttpClientHandler { CookieContainer = _cookieContainer };
+            var client = new HttpClient(handler);
+
+            var htmlData = await client.GetStringAsync("http://leprosorium.ru/democracy/");
+
+            htmlData = Regex.Replace(htmlData, "\n+", "");
+            htmlData = Regex.Replace(htmlData, "\r+", "");
+            htmlData = Regex.Replace(htmlData, "\t+", "");
+
+            var democracyMatch = Regex.Match(htmlData, "<div id=\"president\"><a href=\".+?\">(.+?)</a><p>.+?<br />(.+?)</p></div>");
+
+            var president = democracyMatch.Groups[1];
+            var term = democracyMatch.Groups[2];
+        }
+
         public async void AddPost(string subUrl)
         {
             var url = "http://leprosorium.ru/asylum/";

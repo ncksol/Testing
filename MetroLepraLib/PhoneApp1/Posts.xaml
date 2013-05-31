@@ -26,9 +26,9 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
           </Grid.ColumnDefinitions>
-          <TextBlock TextWrapping="Wrap" Text="{Binding Text}" Grid.Row="0" Grid.ColumnSpan="2"/>
-          <TextBlock TextWrapping="Wrap" Text="{Binding Wrote}" Grid.Row="1" Grid.Column="0"/>
-          <TextBlock TextWrapping="Wrap" Text="{Binding When}" Grid.Row="1" Grid.Column="1"/>
+          <TextBlock TextWrapping="Wrap" Text="{Binding Name}" Grid.Row="0" Grid.ColumnSpan="2"/>
+          <TextBlock TextWrapping="Wrap" Text="{Binding Creator}" Grid.Row="1" Grid.Column="0"/>
+          <TextBlock TextWrapping="Wrap" Text="{Binding Link}" Grid.Row="1" Grid.Column="1"/>
           <Button Content="Comments" Tag="{Binding}" Grid.Row="2" Grid.ColumnSpan="2" Click="Button_Click_1"/>
           <Button Content="+" Grid.Row="3" Tag="{Binding}" Click="UpVote_Click"/>
           <Button Content="-" Grid.Column="1" Grid.Row="3" Tag="{Binding}" Click="DownVote_Click"/>
